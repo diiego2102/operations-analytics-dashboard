@@ -121,6 +121,12 @@ def artifact(data):
 
 
 def main():
+    import argparse
+    import subprocess
+    from export_snapshot import verify
+    parser=argparse.ArgumentParser(description='Generate synthetic data and verify the published presentation.')
+    parser.add_argument('--renderer',type=Path,help='Path to the canonical deliver_portable_artifact.mjs exporter; needed when presentation data changes.')
+    args=parser.parse_args()
     rows=generate()
     out=ROOT/'outputs'; out.mkdir(exist_ok=True)
     with (out/'synthetic_readings.csv').open('w',newline='') as f:
@@ -131,9 +137,13 @@ def main():
     data=extract(con)
     (out/'snapshot.json').write_text(json.dumps(data,indent=2))
     (ROOT/'artifact.json').write_text(json.dumps(artifact(data),indent=2))
+    if args.renderer:
+        subprocess.run(['node',str(args.renderer),'--input',str(ROOT/'artifact.json'),
+            '--output',str(ROOT/'index.html')],check=True)
+    verify()
     print(f'Generated {len(rows):,} fictional asset-days. Fixed seed: 26. Last data day: 2026-09-30.')
     print(json.dumps(data['overview'][0],indent=2))
-    print('Open index.html to explore the reviewed snapshot; outputs contain CSV, SQLite and JSON.')
+    print('HTML matches the generated snapshot. Open index.html; outputs contain CSV, SQLite and JSON.')
     con.close()
 
 
